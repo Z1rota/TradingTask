@@ -15,6 +15,8 @@ import dev.zirota.tradingtask.repository.PositionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -40,11 +42,15 @@ public class OrderService {
     public Page<OrderResponse> findAll(long userId, String seccode, Long accountId, OrderStatus status,
                                         Pageable pageable) {
         return orderRepository.findRegistry(userId, seccode == null ? null : seccode.toUpperCase(),
-                accountId, status, pageable).map(OrderResponse::from);
+                accountId, status, registryPageable(pageable)).map(OrderResponse::from);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public OrderResponse create(long userId, String key, CreateOrderRequest request) {
+        var existing = orderRepository.findByUserIdAndIdempotencyKey(userId, key);
+        if (existing.isPresent()) {
+            return existingResponse(existing.get(), request.normalizedRequest());
+        }
 
         Account account = accountRepository.findByIdAndUserId(request.accountId(), userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
@@ -143,6 +149,20 @@ public class OrderService {
         accountRepository.lockAllById(List.of(order.getAccount().getId()));
         settlementService.releaseRemainder(order);
         order.cancelRemaining();
+    }
+
+    private Pageable registryPageable(Pageable pageable) {
+        List<Sort.Order> orders = pageable.getSort().stream().map(order -> {
+            String property = switch (order.getProperty()) {
+                case "id", "createdAt", "limitPrice", "initialQuantity", "remainingQuantity", "status", "side" -> order.getProperty();
+                case "seccode" -> "instrument.seccode";
+                case "accountId" -> "account.id";
+                default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Unsupported order sort field: " + order.getProperty());
+            };
+            return order.withProperty(property);
+        }).toList();
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
     }
 
     private OrderResponse existingResponse(Order order, String requestData) {

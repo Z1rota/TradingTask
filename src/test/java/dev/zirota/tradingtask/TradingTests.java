@@ -134,7 +134,9 @@ class TradingTests {
     @EnumSource(OrderSide.class)
     void rejectsInsufficientAssets(OrderSide side) {
         Trader trader = side == BUY ? buyer : seller;
-        body(place(trader, "SBER", side, "100", 11, key()), 400);
+        JsonNode error = body(place(trader, "SBER", side, "100", 11, key()), 400);
+        assertThat(error.path("detail").asText()).isEqualTo(side == BUY
+                ? "Insufficient available balance" : "Insufficient available quantity");
 
         assertThat(count("orders")).isZero();
         assertThat(count("trades")).isZero();
@@ -262,6 +264,8 @@ class TradingTests {
 
         assertThat(repeat).isEqualTo(first);
         body(place(buyer, "SBER", BUY, "101", 2, key), 409);
+        body(place(buyer, "MISSING", BUY, "100", 2, key), 409);
+        body(place(new Trader(buyer.token(), Long.MAX_VALUE), "SBER", BUY, "100", 2, key), 409);
         assertThat(count("orders")).isEqualTo(1);
         assertThat(count("trades")).isZero();
         assertCash(buyer, "10000", "2000");
@@ -462,6 +466,91 @@ class TradingTests {
 
         assertCash(target, cash ? "1200" : "0", "0");
         assertPosition(target, cash ? 0 : 20, 0);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void rejectsNumericSide(int side) {
+        body(request(POST, "/api/orders", buyer, Map.of("accountId", buyer.accountId(),
+                "seccode", "SBER", "side", side, "limitPrice", 100, "quantity", 1), key()), 400);
+
+        assertThat(count("orders")).isZero();
+        assertThat(count("trades")).isZero();
+        assertCash(buyer, "10000", "0");
+        assertPosition(seller, 100, 0);
+    }
+
+    @Test
+    void sortsRegistryFields() {
+        order(seller, SELL, "100", 1);
+        order(buyer, BUY, "100", 1);
+        instrument("AAA");
+        shares(seller, "AAA", 10);
+        body(place(seller, "AAA", SELL, "100", 1, key()), 201);
+        body(place(buyer, "AAA", BUY, "100", 1, key()), 201);
+
+        for (String path : List.of("/api/orders", "/api/trades")) {
+            JsonNode asc = get(buyer, path + "?sort=seccode,asc&size=1");
+            JsonNode desc = get(buyer, path + "?sort=seccode,desc&size=1");
+            JsonNode next = get(buyer, path + "?sort=seccode,asc&size=1&page=1");
+            assertThat(asc.at("/content/0/seccode").asText()).isEqualTo("AAA");
+            assertThat(desc.at("/content/0/seccode").asText()).isEqualTo("SBER");
+            assertThat(next.at("/content/0/seccode").asText()).isEqualTo("SBER");
+            assertThat(asc.path("totalElements").asInt()).isEqualTo(2);
+            assertThat(asc.path("totalPages").asInt()).isEqualTo(2);
+        }
+
+        Trader secondary = account(buyer);
+        money(secondary, "1000");
+        order(secondary, BUY, "90", 1);
+        JsonNode accounts = get(buyer, "/api/orders?sort=accountId,desc&sort=id,desc");
+        assertThat(accounts.at("/content/0/accountId").asLong()).isEqualTo(secondary.accountId());
+        for (String field : List.of("id", "createdAt", "limitPrice", "initialQuantity", "remainingQuantity", "status", "side")) {
+            get(buyer, "/api/orders?sort=" + field + ",asc");
+        }
+        for (String field : List.of("id", "executedAt", "price", "quantity")) {
+            get(buyer, "/api/trades?sort=" + field + ",asc");
+        }
+    }
+
+    @Test
+    void rejectsUnknownSortFields() {
+        for (String path : List.of("/api/orders", "/api/trades")) {
+            JsonNode error = body(request(GET, path + "?sort=missing,asc", buyer, null, null), 400);
+            assertThat(error.path("detail").asText()).contains("Unsupported", "missing");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void concurrentDuplicatesReturnConflict(boolean registration) throws Exception {
+        String path = registration ? "/api/auth/register" : "/api/instruments";
+        Map<String, ?> payload = registration
+                ? Map.of("username", "duplicate", "password", "testPassword123")
+                : Map.of("seccode", "DUP", "lotSize", 10, "minPriceStep", "0.01", "quoteCurrency", "RUB");
+
+        var responses = concurrently(
+                () -> request(POST, path, buyer, payload, null),
+                () -> request(POST, path, buyer, payload, null));
+
+        assertThat(responses).extracting(response -> response.getStatusCode().value())
+                .containsExactlyInAnyOrder(201, 409);
+        JsonNode error = responses.stream().filter(response -> response.getStatusCode().value() == 409)
+                .findFirst().orElseThrow().getBody();
+        assertThat(error.path("detail").asText()).isNotBlank();
+        String query = registration ? "select count(*) from users where username = 'duplicate'"
+                : "select count(*) from instruments where seccode = 'DUP'";
+        assertThat(jdbc.queryForObject(query, Long.class)).isEqualTo(1);
+    }
+
+    @Test
+    void reportsBusinessErrorReasons() {
+        JsonNode tickError = body(place(buyer, "SBER", BUY, "100.001", 1, key()), 400);
+        assertThat(tickError.path("detail").asText()).isEqualTo("Price must be a multiple of the minimum price step");
+        JsonNode missing = body(place(buyer, "MISSING", BUY, "100", 1, key()), 404);
+        assertThat(missing.path("detail").asText()).isEqualTo("Instrument not found");
+        assertThat(count("orders")).isZero();
+        assertCash(buyer, "10000", "0");
     }
 
     private Trader trader(String username) {
