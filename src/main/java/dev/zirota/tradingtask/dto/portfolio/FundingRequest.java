@@ -8,7 +8,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
-import java.util.Locale;
 
 public record FundingRequest(
         @NotNull @Positive Long accountId,
@@ -25,7 +24,7 @@ public record FundingRequest(
 
     public String normalizedRequest() {
         return accountId + ":" + (amount == null ? "" : amount.stripTrailingZeros().toPlainString())
-                + ":" + (seccode == null ? "" : seccode.toUpperCase(Locale.ROOT))
+                + ":" + (seccode == null ? "" : seccode.toUpperCase())
                 + ":" + (quantity == null ? "" : quantity);
     }
 }

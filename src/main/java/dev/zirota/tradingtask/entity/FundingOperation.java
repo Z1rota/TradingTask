@@ -26,12 +26,12 @@ public class FundingOperation {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(nullable = false)
     private User user;
 
-    @Column(name = "idempotency_key", nullable = false, length = 128)
+    @Column(nullable = false, length = 128)
     private String idempotencyKey;
 
-    @Column(name = "request_data", nullable = false, length = 128)
+    @Column(nullable = false, length = 128)
     private String requestData;
 }

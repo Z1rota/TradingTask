@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -23,6 +22,13 @@ public interface PositionRepository extends JpaRepository<Position, Long> {
             set quantity = positions.quantity + excluded.quantity
             where positions.quantity <= 9223372036854775807 - excluded.quantity
             """, nativeQuery = true)
-    int addQuantity(@Param("accountId") long accountId, @Param("instrumentId") long instrumentId,
-                    @Param("quantity") long quantity);
+    int addQuantity(long accountId, long instrumentId, long quantity);
+
+    @Modifying
+    @Query("""
+            update Position p set p.reservedQuantity = p.reservedQuantity + :quantity
+            where p.account.id = :accountId and p.instrument.id = :instrumentId
+              and p.quantity - p.reservedQuantity >= :quantity
+            """)
+    int reserveQuantity(long accountId, long instrumentId, long quantity);
 }

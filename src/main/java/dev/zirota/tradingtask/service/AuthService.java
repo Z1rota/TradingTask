@@ -13,8 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Locale;
-
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -25,7 +23,7 @@ public class AuthService {
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
-        String username = request.username().toLowerCase(Locale.ROOT);
+        String username = request.username().toLowerCase();
         if (userRepository.existsByUsername(username)) {
             throw new UsernameAlreadyExistsException();
         }
@@ -36,7 +34,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
-        String username = request.username().toLowerCase(Locale.ROOT);
+        String username = request.username().toLowerCase();
         User user = userRepository.findByUsername(username)
                 .filter(existing -> passwordEncoder.matches(request.password(), existing.getPasswordHash()))
                 .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));

@@ -28,17 +28,17 @@ public class Position {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "account_id", nullable = false)
+    @JoinColumn(nullable = false)
     private Account account;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "instrument_id", nullable = false)
+    @JoinColumn(nullable = false)
     private Instrument instrument;
 
     @Column(nullable = false)
     private long quantity;
 
-    @Column(name = "reserved_quantity", nullable = false)
+    @Column(nullable = false)
     private long reservedQuantity;
 
     public Position(Account account, Instrument instrument) {

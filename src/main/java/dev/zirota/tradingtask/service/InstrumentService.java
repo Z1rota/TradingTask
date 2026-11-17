@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +21,7 @@ public class InstrumentService {
 
     @Transactional
     public InstrumentResponse create(CreateInstrumentRequest request) {
-        String seccode = request.seccode().toUpperCase(Locale.ROOT);
+        String seccode = request.seccode().toUpperCase();
         if (instrumentRepository.existsBySeccode(seccode)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Instrument already exists");
         }
@@ -39,7 +38,7 @@ public class InstrumentService {
 
     @Transactional(readOnly = true)
     public InstrumentResponse findBySeccode(String seccode) {
-        Instrument instrument = instrumentRepository.findBySeccode(seccode.toUpperCase(Locale.ROOT))
+        Instrument instrument = instrumentRepository.findBySeccode(seccode.toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instrument not found"));
         return InstrumentResponse.from(instrument);
     }

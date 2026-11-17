@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -46,7 +45,7 @@ public class FundingService {
             }
             return;
         }
-        Instrument instrument = instrumentRepository.findBySeccode(request.seccode().toUpperCase(Locale.ROOT))
+        Instrument instrument = instrumentRepository.findBySeccode(request.seccode().toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instrument not found"));
         if (!account.getCurrency().equals(instrument.getQuoteCurrency())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account and instrument currencies must match");

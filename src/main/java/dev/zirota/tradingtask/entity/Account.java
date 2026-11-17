@@ -28,7 +28,7 @@ public class Account {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(nullable = false)
     private User user;
 
     @Column(nullable = false, length = 3)
@@ -37,7 +37,7 @@ public class Account {
     @Column(nullable = false, precision = 28, scale = 8)
     private BigDecimal balance = BigDecimal.ZERO;
 
-    @Column(name = "reserved_balance", nullable = false, precision = 28, scale = 8)
+    @Column(nullable = false, precision = 28, scale = 8)
     private BigDecimal reservedBalance = BigDecimal.ZERO;
 
     public Account(User user, String currency) {
