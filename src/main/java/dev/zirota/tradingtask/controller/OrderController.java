@@ -2,6 +2,7 @@ package dev.zirota.tradingtask.controller;
 
 import dev.zirota.tradingtask.dto.order.CreateOrderRequest;
 import dev.zirota.tradingtask.dto.order.OrderResponse;
+import dev.zirota.tradingtask.dto.order.ReplaceOrderRequest;
 import dev.zirota.tradingtask.service.OrderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -32,6 +33,14 @@ public class OrderController {
                                 @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String key,
                                 @Valid @RequestBody CreateOrderRequest request) {
         return orderService.create(Long.parseLong(jwt.getSubject()), key, request);
+    }
+
+    @PostMapping("/{id}/replace")
+    @ResponseStatus(HttpStatus.CREATED)
+    public OrderResponse replace(@AuthenticationPrincipal Jwt jwt, @PathVariable long id,
+                                 @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String key,
+                                 @Valid @RequestBody ReplaceOrderRequest request) {
+        return orderService.replace(Long.parseLong(jwt.getSubject()), id, key, request);
     }
 
     @DeleteMapping("/{id}")

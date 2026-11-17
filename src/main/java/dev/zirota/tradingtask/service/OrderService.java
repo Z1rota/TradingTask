@@ -2,6 +2,7 @@ package dev.zirota.tradingtask.service;
 
 import dev.zirota.tradingtask.dto.order.CreateOrderRequest;
 import dev.zirota.tradingtask.dto.order.OrderResponse;
+import dev.zirota.tradingtask.dto.order.ReplaceOrderRequest;
 import dev.zirota.tradingtask.entity.Account;
 import dev.zirota.tradingtask.entity.Instrument;
 import dev.zirota.tradingtask.entity.Order;
@@ -42,10 +43,37 @@ public class OrderService {
         Instrument instrument = instrumentRepository.findBySeccodeForUpdate(request.seccode().toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instrument not found"));
 
-        String requestData = request.normalizedRequest();
+        return submit(userId, key, request, account, instrument, null);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public OrderResponse replace(long userId, long orderId, String key, ReplaceOrderRequest request) {
+
+        String seccode = orderRepository.findSeccodeByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+
+        Instrument instrument = instrumentRepository.findBySeccodeForUpdate(seccode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instrument not found"));
+
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+
+        CreateOrderRequest replacement = new CreateOrderRequest(order.getAccount().getId(), seccode,
+                order.getSide(), request.limitPrice(), request.quantity());
+        return submit(userId, key, replacement, order.getAccount(), instrument, order);
+    }
+
+    private OrderResponse submit(long userId, String key, CreateOrderRequest request,
+                                 Account account, Instrument instrument, Order replaced) {
+        String requestData = (replaced == null ? "" : "replace:" + replaced.getId() + ":")
+                + request.normalizedRequest();
         var existing = orderRepository.findByUserIdAndIdempotencyKey(userId, key);
         if (existing.isPresent()) {
             return existingResponse(existing.get(), requestData);
+        }
+        if (replaced != null && replaced.getStatus() != OrderStatus.NEW
+                && replaced.getStatus() != OrderStatus.PARTIALLY_FILLED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only active orders can be replaced");
         }
         if (!account.getCurrency().equals(instrument.getQuoteCurrency())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account and instrument currencies must match");
@@ -69,6 +97,10 @@ public class OrderService {
         Order order = orderRepository.findByUserIdAndIdempotencyKey(userId, key).orElseThrow();
         if (inserted == 0) {
             return existingResponse(order, requestData);
+        }
+        if (replaced != null) {
+            settlementService.releaseRemainder(replaced);
+            replaced.cancelRemaining();
         }
         if (request.side() == OrderSide.BUY) {
             BigDecimal amount = request.limitPrice().multiply(BigDecimal.valueOf(units));
