@@ -1,5 +1,6 @@
-package dev.zirota.tradingtask.user;
+package dev.zirota.tradingtask.repository;
 
+import dev.zirota.tradingtask.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

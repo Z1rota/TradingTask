@@ -1,11 +1,12 @@
-package dev.zirota.tradingtask.auth;
+package dev.zirota.tradingtask.service;
 
-import dev.zirota.tradingtask.auth.dto.LoginRequest;
-import dev.zirota.tradingtask.auth.dto.LoginResponse;
-import dev.zirota.tradingtask.auth.dto.RegisterRequest;
-import dev.zirota.tradingtask.auth.dto.RegisterResponse;
-import dev.zirota.tradingtask.user.User;
-import dev.zirota.tradingtask.user.UserRepository;
+import dev.zirota.tradingtask.dto.auth.LoginRequest;
+import dev.zirota.tradingtask.dto.auth.LoginResponse;
+import dev.zirota.tradingtask.dto.auth.RegisterRequest;
+import dev.zirota.tradingtask.dto.auth.RegisterResponse;
+import dev.zirota.tradingtask.entity.User;
+import dev.zirota.tradingtask.exception.UsernameAlreadyExistsException;
+import dev.zirota.tradingtask.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;

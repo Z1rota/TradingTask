@@ -1,4 +1,4 @@
-package dev.zirota.tradingtask.user;
+package dev.zirota.tradingtask.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

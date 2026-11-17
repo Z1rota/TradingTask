@@ -1,4 +1,4 @@
-package dev.zirota.tradingtask.auth.dto;
+package dev.zirota.tradingtask.dto.auth;
 
 public record RegisterResponse(Long id, String username) {
 }

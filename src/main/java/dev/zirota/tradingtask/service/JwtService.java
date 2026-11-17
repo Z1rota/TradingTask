@@ -1,6 +1,6 @@
-package dev.zirota.tradingtask.auth;
+package dev.zirota.tradingtask.service;
 
-import dev.zirota.tradingtask.auth.dto.LoginResponse;
+import dev.zirota.tradingtask.dto.auth.LoginResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;

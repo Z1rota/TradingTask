@@ -1,4 +1,4 @@
-package dev.zirota.tradingtask.auth.dto;
+package dev.zirota.tradingtask.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

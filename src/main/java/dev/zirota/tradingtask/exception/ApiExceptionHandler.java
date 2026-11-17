@@ -1,6 +1,5 @@
 package dev.zirota.tradingtask.exception;
 
-import dev.zirota.tradingtask.auth.UsernameAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.authentication.BadCredentialsException;

@@ -1,4 +1,4 @@
-package dev.zirota.tradingtask.auth;
+package dev.zirota.tradingtask.exception;
 
 public class UsernameAlreadyExistsException extends RuntimeException {
 

@@ -1,9 +1,10 @@
-package dev.zirota.tradingtask.auth;
+package dev.zirota.tradingtask.controller;
 
-import dev.zirota.tradingtask.auth.dto.LoginRequest;
-import dev.zirota.tradingtask.auth.dto.LoginResponse;
-import dev.zirota.tradingtask.auth.dto.RegisterRequest;
-import dev.zirota.tradingtask.auth.dto.RegisterResponse;
+import dev.zirota.tradingtask.dto.auth.LoginRequest;
+import dev.zirota.tradingtask.dto.auth.LoginResponse;
+import dev.zirota.tradingtask.dto.auth.RegisterRequest;
+import dev.zirota.tradingtask.dto.auth.RegisterResponse;
+import dev.zirota.tradingtask.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
