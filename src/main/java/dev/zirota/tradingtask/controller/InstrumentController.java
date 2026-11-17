@@ -2,7 +2,9 @@ package dev.zirota.tradingtask.controller;
 
 import dev.zirota.tradingtask.dto.instrument.CreateInstrumentRequest;
 import dev.zirota.tradingtask.dto.instrument.InstrumentResponse;
+import dev.zirota.tradingtask.dto.order.OrderBookResponse;
 import dev.zirota.tradingtask.service.InstrumentService;
+import dev.zirota.tradingtask.service.OrderBookService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ import java.util.List;
 public class InstrumentController {
 
     private final InstrumentService instrumentService;
+    private final OrderBookService orderBookService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -32,6 +35,11 @@ public class InstrumentController {
     @GetMapping
     public List<InstrumentResponse> findAll() {
         return instrumentService.findAll();
+    }
+
+    @GetMapping("/{seccode}/orderbook")
+    public OrderBookResponse orderBook(@PathVariable String seccode) {
+        return orderBookService.findBySeccode(seccode);
     }
 
     @GetMapping("/{seccode}")

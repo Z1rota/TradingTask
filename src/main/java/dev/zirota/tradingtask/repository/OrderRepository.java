@@ -10,10 +10,29 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    interface OrderBookLevel {
+        OrderSide getSide();
+        BigDecimal getPrice();
+        BigInteger getQuantity();
+    }
+
+    @Query(value = """
+            select side, limit_price as price, sum(remaining_quantity) as quantity
+            from orders
+            where instrument_id = :instrumentId and status in ('NEW', 'PARTIALLY_FILLED')
+              and remaining_quantity > 0
+            group by side, limit_price
+            order by side,
+                     case when side = 'BUY' then limit_price end desc,
+                     case when side = 'SELL' then limit_price end asc
+            """, nativeQuery = true)
+    List<OrderBookLevel> findOrderBook(long instrumentId);
 
     @Query("select o.instrument.seccode from Order o where o.id = :id and o.user.id = :userId")
     Optional<String> findSeccodeByIdAndUserId(long id, long userId);
