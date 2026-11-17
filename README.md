@@ -46,6 +46,40 @@ mvn spring-boot:run
 
 Тестовое пополнение доступно через `POST /api/dev/funding`. Для пополнения, создания и замены заявки нужен заголовок `Idempotency-Key`. Повтор запроса с тем же ключом и параметрами не выполняет операцию ещё раз.
 
+## Эндпоинты
+
+Все запросы, кроме регистрации и входа, требуют JWT. Тело запроса передаётся в JSON. Пользователь видит только свои счета, позиции, заявки и сделки.
+
+| Метод | Путь | Назначение |
+| --- | --- | --- |
+| POST | `/api/auth/register` | Регистрация. Принимает `username` и `password`. Возвращает ID и имя пользователя. |
+| POST | `/api/auth/login` | Вход по `username` и `password`. Возвращает JWT в поле `accessToken` и срок его действия. |
+| POST | `/api/instruments` | Создание инструмента. Нужны `seccode`, `lotSize`, `minPriceStep` и `quoteCurrency`. |
+| GET | `/api/instruments` | Список всех инструментов. |
+| GET | `/api/instruments/{seccode}` | Данные одного инструмента по его коду. |
+| GET | `/api/instruments/{seccode}/orderbook` | Стакан инструмента. В `bids` покупки идут по убыванию цены, в `asks` продажи идут по возрастанию. На каждом уровне указаны цена и сумма оставшихся лотов. |
+| POST | `/api/accounts` | Открытие счёта с нулевым балансом. Принимает `currency`, например `RUB`. |
+| GET | `/api/accounts` | Свои счета с общим, зарезервированным и доступным балансом. |
+| GET | `/api/positions` | Свои позиции по всем счетам. Для каждой указаны инструмент, счёт, общее и зарезервированное количество бумаг, доступный остаток. |
+| POST | `/api/dev/funding` | Тестовое пополнение своего счёта. Для денег нужны `accountId` и `amount`. Для бумаг нужны `accountId`, `seccode` и `quantity` в штуках. Требует `Idempotency-Key`. |
+| POST | `/api/orders` | Создание заявки. Нужны `accountId`, `seccode`, `side` (`BUY` или `SELL`), `limitPrice` и `quantity` в лотах. Заявка сразу участвует в торгах. Требует `Idempotency-Key`. |
+| GET | `/api/orders` | Реестр своих заявок, включая исполненные и отменённые. Есть фильтры `seccode`, `accountId` и `status`. |
+| DELETE | `/api/orders/{id}` | Отмена своей активной заявки и освобождение остатка резерва. Повторная отмена также возвращает `204`. Отмена полностью исполненной заявки возвращает `409`. |
+| POST | `/api/orders/{id}/replace` | Замена своей активной заявки. Принимает `limitPrice` и новое количество оставшихся лотов в `quantity`. Возвращает новую заявку с новым ID. Требует `Idempotency-Key`. |
+| GET | `/api/trades` | Реестр своих сделок. Есть фильтры `seccode` и `accountId`. Сторона сделки, счёт и ID заявки указываются для текущего пользователя. |
+
+Для фильтра `status` доступны `NEW`, `PARTIALLY_FILLED`, `FILLED` и `CANCELLED`.
+
+В реестрах заявок и сделок используются параметры `page`, `size` и `sort`. Нумерация страниц начинается с нуля. По умолчанию возвращается 20 записей с сортировкой по `id` от новых к старым.
+
+```http
+GET /api/orders?seccode=SBER&status=NEW&page=0&size=20&sort=limitPrice,desc
+```
+
+Заявки можно сортировать по `id`, `createdAt`, `limitPrice`, `initialQuantity`, `remainingQuantity`, `status`, `side`, `seccode` и `accountId`. Для сделок доступны `id`, `executedAt`, `price`, `quantity` и `seccode`. Направление задаётся через `asc` или `desc`.
+
+Повторное использование `Idempotency-Key` с другими параметрами возвращает `409`.
+
 ## Тесты
 
 ```powershell
