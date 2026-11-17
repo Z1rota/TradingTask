@@ -6,6 +6,7 @@ import dev.zirota.tradingtask.entity.Account;
 import dev.zirota.tradingtask.entity.Instrument;
 import dev.zirota.tradingtask.entity.Order;
 import dev.zirota.tradingtask.entity.OrderSide;
+import dev.zirota.tradingtask.entity.OrderStatus;
 import dev.zirota.tradingtask.repository.AccountRepository;
 import dev.zirota.tradingtask.repository.InstrumentRepository;
 import dev.zirota.tradingtask.repository.OrderRepository;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.stream.Stream;
 
 @Service
@@ -29,6 +31,7 @@ public class OrderService {
     private final PositionRepository positionRepository;
     private final OrderRepository orderRepository;
     private final MatchingEngine matchingEngine;
+    private final SettlementService settlementService;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public OrderResponse create(long userId, String key, CreateOrderRequest request) {
@@ -77,6 +80,28 @@ public class OrderService {
         }
         matchingEngine.match(order, candidates);
         return OrderResponse.from(order);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void cancel(long userId, long orderId) {
+        String seccode = orderRepository.findSeccodeByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+
+        instrumentRepository.findBySeccodeForUpdate(seccode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instrument not found"));
+
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            return;
+        }
+        if (order.getStatus() == OrderStatus.FILLED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Filled order cannot be cancelled");
+        }
+
+        accountRepository.lockAllById(List.of(order.getAccount().getId()));
+        settlementService.releaseRemainder(order);
+        order.cancelRemaining();
     }
 
     private OrderResponse existingResponse(Order order, String requestData) {

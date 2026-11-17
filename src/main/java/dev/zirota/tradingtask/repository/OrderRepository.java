@@ -15,6 +15,12 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    @Query("select o.instrument.seccode from Order o where o.id = :id and o.user.id = :userId")
+    Optional<String> findSeccodeByIdAndUserId(long id, long userId);
+
+    @EntityGraph(attributePaths = {"account", "instrument"})
+    Optional<Order> findByIdAndUserId(long id, long userId);
+
     @EntityGraph(attributePaths = {"account", "instrument"})
     Optional<Order> findByUserIdAndIdempotencyKey(long userId, String idempotencyKey);
 
