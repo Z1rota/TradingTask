@@ -1,5 +1,9 @@
 package dev.zirota.tradingtask.auth;
 
+import dev.zirota.tradingtask.auth.dto.LoginRequest;
+import dev.zirota.tradingtask.auth.dto.LoginResponse;
+import dev.zirota.tradingtask.auth.dto.RegisterRequest;
+import dev.zirota.tradingtask.auth.dto.RegisterResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,5 +24,10 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
         return authService.register(request);
+    }
+
+    @PostMapping("/login")
+    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+        return authService.login(request);
     }
 }
