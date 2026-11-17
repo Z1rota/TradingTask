@@ -68,4 +68,20 @@ public class Order {
 
     @Column(nullable = false, length = 128)
     private String requestData;
+
+    public void fill(long quantity) {
+        if (quantity <= 0 || quantity > remainingQuantity
+                || (status != OrderStatus.NEW && status != OrderStatus.PARTIALLY_FILLED)) {
+            throw new IllegalStateException("Order cannot execute this quantity");
+        }
+        remainingQuantity -= quantity;
+        status = remainingQuantity == 0 ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
+    }
+
+    public void cancelRemaining() {
+        if (remainingQuantity <= 0 || (status != OrderStatus.NEW && status != OrderStatus.PARTIALLY_FILLED)) {
+            throw new IllegalStateException("Order has no active remainder");
+        }
+        status = OrderStatus.CANCELLED;
+    }
 }

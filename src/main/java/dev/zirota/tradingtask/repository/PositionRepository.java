@@ -31,4 +31,19 @@ public interface PositionRepository extends JpaRepository<Position, Long> {
               and p.quantity - p.reservedQuantity >= :quantity
             """)
     int reserveQuantity(long accountId, long instrumentId, long quantity);
+
+    @Modifying
+    @Query("""
+            update Position p set p.quantity = p.quantity - :quantity, p.reservedQuantity = p.reservedQuantity - :quantity
+            where p.account.id = :accountId and p.instrument.id = :instrumentId
+              and p.quantity >= :quantity and p.reservedQuantity >= :quantity
+            """)
+    int settleSell(long accountId, long instrumentId, long quantity);
+
+    @Modifying
+    @Query("""
+            update Position p set p.reservedQuantity = p.reservedQuantity - :quantity
+            where p.account.id = :accountId and p.instrument.id = :instrumentId and p.reservedQuantity >= :quantity
+            """)
+    int releaseQuantity(long accountId, long instrumentId, long quantity);
 }

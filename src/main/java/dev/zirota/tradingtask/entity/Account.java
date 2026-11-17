@@ -23,6 +23,8 @@ import java.math.BigDecimal;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Account {
 
+    public static final BigDecimal MAX_BALANCE = new BigDecimal("99999999999999999999.99999999");
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

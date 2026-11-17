@@ -14,13 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
-
 @Service
 @RequiredArgsConstructor
 public class FundingService {
-
-    private static final BigDecimal MAX_BALANCE = new BigDecimal("99999999999999999999.99999999");
 
     private final AccountRepository accountRepository;
     private final PositionRepository positionRepository;
@@ -40,12 +36,12 @@ public class FundingService {
             return;
         }
         if (request.amount() != null) {
-            if (accountRepository.addBalance(account.getId(), request.amount(), MAX_BALANCE) == 0) {
+            if (accountRepository.addBalance(account.getId(), request.amount(), Account.MAX_BALANCE) == 0) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maximum account balance exceeded");
             }
             return;
         }
-        Instrument instrument = instrumentRepository.findBySeccode(request.seccode().toUpperCase())
+        Instrument instrument = instrumentRepository.findBySeccodeForUpdate(request.seccode().toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instrument not found"));
         if (!account.getCurrency().equals(instrument.getQuoteCurrency())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account and instrument currencies must match");
