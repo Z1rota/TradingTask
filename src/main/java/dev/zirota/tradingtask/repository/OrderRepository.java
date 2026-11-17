@@ -3,6 +3,8 @@ package dev.zirota.tradingtask.repository;
 import dev.zirota.tradingtask.entity.Order;
 import dev.zirota.tradingtask.entity.OrderSide;
 import dev.zirota.tradingtask.entity.OrderStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,6 +17,16 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    @EntityGraph(attributePaths = {"account", "instrument"})
+    @Query("""
+            select o from Order o
+            where o.user.id = :userId
+              and (:seccode is null or o.instrument.seccode = :seccode)
+              and (:accountId is null or o.account.id = :accountId)
+              and (:status is null or o.status = :status)
+            """)
+    Page<Order> findRegistry(long userId, String seccode, Long accountId, OrderStatus status, Pageable pageable);
 
     interface OrderBookLevel {
         OrderSide getSide();

@@ -13,6 +13,8 @@ import dev.zirota.tradingtask.repository.InstrumentRepository;
 import dev.zirota.tradingtask.repository.OrderRepository;
 import dev.zirota.tradingtask.repository.PositionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -33,6 +35,13 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final MatchingEngine matchingEngine;
     private final SettlementService settlementService;
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> findAll(long userId, String seccode, Long accountId, OrderStatus status,
+                                        Pageable pageable) {
+        return orderRepository.findRegistry(userId, seccode == null ? null : seccode.toUpperCase(),
+                accountId, status, pageable).map(OrderResponse::from);
+    }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public OrderResponse create(long userId, String key, CreateOrderRequest request) {
